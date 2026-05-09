@@ -29,10 +29,33 @@ export default function MoviePage({
     fetchMovie();
   }, [id]);
 
-  async function addToFavorites() {
+  async function toggleFavorite() {
     if (!movie) return;
 
-    const res = await fetch("/api/favorites", {
+    // REMOVE FAVORITE
+    if (favorite) {
+      const favsRes = await fetch("/api/favorites");
+      const favsData = await favsRes.json();
+
+      const existingMovie = favsData.favorites.find(
+        (m: any) =>
+          m.movie_id === (movie.id || movie.imdbID)
+      );
+
+      if (existingMovie) {
+        await fetch(`/api/favorites/${existingMovie.id}`, {
+          method: "DELETE",
+        });
+      }
+
+      setFavorite(false);
+      return;
+    }
+
+    // ADD FAVORITE
+    setFavorite(true);
+
+    await fetch("/api/favorites", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -44,9 +67,6 @@ export default function MoviePage({
         poster: movie.poster || movie.Poster,
       }),
     });
-
-    const data = await res.json();
-    if (data.success) setFavorite(data.favorite);
   }
 
   async function toggleWatched() {
@@ -66,7 +86,10 @@ export default function MoviePage({
     });
 
     const data = await res.json();
-    if (data.success) setWatched(data.watched);
+
+    if (data.success) {
+      setWatched(data.watched);
+    }
   }
 
   async function toggleBacklog() {
@@ -86,7 +109,10 @@ export default function MoviePage({
     });
 
     const data = await res.json();
-    if (data.success) setBacklog(data.backlog);
+
+    if (data.success) {
+      setBacklog(data.backlog);
+    }
   }
 
   if (loading)
@@ -98,7 +124,6 @@ export default function MoviePage({
   return (
     <main style={{ padding: 30, minHeight: "100vh", color: "white" }}>
       <div style={{ display: "flex", gap: 30, flexWrap: "wrap" }}>
-        {/* POSTER */}
         <img
           src={movie.poster || movie.Poster}
           alt={movie.title || movie.Title}
@@ -109,7 +134,6 @@ export default function MoviePage({
           }}
         />
 
-        {/* INFO */}
         <div style={{ maxWidth: 650 }}>
           <h1>{movie.title || movie.Title}</h1>
 
@@ -121,7 +145,6 @@ export default function MoviePage({
             <strong>Genre:</strong> {movie.Genre}
           </p>
 
-          {/* ⭐ RATINGS */}
           <div style={{ marginTop: 10 }}>
             <strong>Ratings:</strong>
 
@@ -143,10 +166,8 @@ export default function MoviePage({
             )}
           </div>
 
-          {/* SUMMARY */}
           <p style={{ marginTop: 15 }}>{movie.Plot}</p>
 
-          {/* BUTTONS */}
           <div
             style={{
               display: "flex",
@@ -156,7 +177,7 @@ export default function MoviePage({
             }}
           >
             <button
-              onClick={addToFavorites}
+              onClick={toggleFavorite}
               style={{
                 padding: "12px 16px",
                 borderRadius: 10,
